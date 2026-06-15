@@ -1,0 +1,40 @@
+{
+  "name": "headlo",
+  "version": "1.0.15",
+  "description": "Headlo SDK",
+  "license": "Elastic-2.0",
+  "homepage": "https://www.headlo.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/headlohq/headlo-sdk"
+  },
+  "keywords": [
+    "headless-cms",
+    "cms",
+    "content",
+    "ai-agent",
+    "ai-native"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "tsc": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  }
+}
