@@ -146,6 +146,104 @@ const headlo = createClient('anon-key', {
 
 ---
 
+## PROP — `createService`
+
+PROP components and services are configured separately from the CMS client. Use `createService` — it has no anon key and is not connected to collections or records.
+
+```ts
+import { createService } from 'headlo'
+```
+
+### Keys
+
+Two key types, two headers, never confused:
+
+| Header | Format | Where | Purpose |
+|---|---|---|---|
+| `X-Headlo-Prop-Client-Id` | `cid_xxx` | Browser / `createService` | Identifies agency. Validated against `allowed_origins`. Safe to expose. |
+| `X-Headlo-Prop-Secret` | `sk_xxx` | Server-side only | Identifies agency AND proves server context. Skips origin check. Never in browser code. |
+
+Get your `cid_xxx` from **[headlo.com/dashboard/settings](https://headlo.com/dashboard/settings) → PROP Keys**. Generate and copy the client ID, set allowed origins for your domains.
+
+For server-side calls, generate a `sk_xxx` in the dashboard and use `X-Headlo-Prop-Secret` — no client ID needed alongside it.
+
+### Initialize once
+
+```ts
+// lib/prop.ts
+import { createService } from 'headlo'
+
+export const service = createService({
+  clientId: import.meta.env.VITE_HEADLO_PROP_CLIENT_ID
+})
+```
+
+```bash
+# .env.production
+VITE_HEADLO_PROP_CLIENT_ID=cid_xxx
+```
+
+```ts
+import { service } from './lib/prop'
+
+const { def, app } = await service.prop('headlo-auth-button').get()
+// def.slug, def.framework, def.requires
+// app.component_js — compiled React function component
+```
+
+### Domain allowlisting
+
+The client ID is tied to a set of allowed origins. headlo-worker checks the `Origin` header on every call — requests from unregistered domains are rejected.
+
+```
+Settings → PROP Keys → cid_xxx → Allowed origins
+  ✓ https://acme.com
+  ✓ https://staging.acme.com
+  ✓ http://localhost:3000
+```
+
+Someone copying your `cid_xxx` cannot use it from their own domain.
+
+### Private prop server
+
+```ts
+const service = createService({
+  clientId: 'cid_xxx',
+  url:       'https://prop.acme.com'
+})
+
+const { def, app } = await service.prop('my-component').get()
+// component defs from prop.acme.com — service calls go to prop.acme.com too
+```
+
+### Hybrid — private components, Headlo services
+
+```ts
+const service = createService({
+  clientId:   'cid_xxx',
+  url:        'https://prop.acme.com',
+  serviceUrl: 'https://api.headlo.com'
+})
+```
+
+### How service routing works
+
+`serviceUrl` controls which server delivers the service client stub. The stub's methods are fetch calls baked with that server's base URL.
+
+```
+serviceUrl: 'https://api.headlo.com'  (default)
+  → stub calls api.headlo.com/v1/prop/service/headlo-auth/v1/...
+  → headlo-worker validates cid_xxx + Origin → bills the right agency
+
+serviceUrl: 'https://prop.acme.com'  (private server)
+  → stub calls prop.acme.com/v1/prop/service/headlo-auth/v1/...
+  → your headlo-prop-server handles it
+```
+
+Pass the `service` instance to `useProp` in `headlo-react` to apply these settings inside a React app.
+
+---
+
 ## TypeScript
 
 All methods are fully typed. Import types as needed:

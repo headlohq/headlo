@@ -130,16 +130,17 @@ export interface CollectionBuilder {
 // ---------------------------------------------------------------------------
 
 export interface PropComponentDef {
-  def_id:      string
-  slug:        string
-  prop_type:   string
-  owner_id:    string
-  name:        string
-  stage:       string
-  contract:    Record<string, unknown>
-  requires:    Record<string, unknown>
-  public_path: string
-  is_public:   boolean
+  def_id:        string
+  slug:          string
+  prop_type:     string
+  owner_id:      string
+  name:          string
+  stage:         string
+  contract:      Record<string, unknown>
+  requires:      Record<string, unknown>
+  public_path:   string
+  is_public:     boolean
+  react_version: string
 }
 
 export interface PropComponentApp {
@@ -175,6 +176,30 @@ export interface PropServiceResponse {
 export interface PropServiceClient {
   manifest(): Promise<HeadloResult<PropServiceResponse>>
   call(action: string, args?: Record<string, unknown>): Promise<HeadloResult<Record<string, unknown>>>
+}
+
+export interface PropServiceConfig {
+  publishableKey?: string
+  url?:            string  // component server base URL (default: https://api.headlo.com)
+  serviceUrl?:     string  // service stub base URL (default: same as url)
+}
+
+export interface PropService extends PropServiceConfig {
+  dist(runtime: string, version: string): {
+    bundleUrl(): string
+    preload():   void
+    load():      Promise<void>
+  }
+  component(slug: string): {
+    def():       Promise<HeadloResult<PropComponentResponse>>
+    bundleUrl(): string
+    preload():   void
+    load():      Promise<void>
+  }
+  service(slug: string, version: string): {
+    manifest():  Promise<HeadloResult<PropServiceResponse>>
+    bundleUrl(): string
+  }
 }
 
 // ---------------------------------------------------------------------------

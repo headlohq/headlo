@@ -1,6 +1,8 @@
 export { createClient }           from './client'
+export { createService }          from './service'
 export { verifyComponentCode }    from './verify'
 export type { HeadloClient } from './client'
+export type { PropService, PropServiceConfig } from './types'
 export type {
   HeadloErrorCode,
   HeadloResult,

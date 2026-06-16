@@ -30,7 +30,7 @@ export interface HeadloClient {
   site(): { pages(): Promise<HeadloResult<SitePagesResponse>> }
   components(): () => Promise<HeadloResult<{ components: ComponentMeta[]; signature: string | null }>>
   component(componentId: string): { records(opts?: Omit<ListOptions, 'record_ids'>): Promise<HeadloResult<CollectionListResponse>> }
-  prop(slug: string): PropServiceClient
+  service(slug: string): PropServiceClient
 }
 
 interface ClientOptions {
@@ -156,7 +156,7 @@ export function createClient(anonKey: string, options?: ClientOptions): HeadloCl
       return () => req<{ components: ComponentMeta[]; signature: string | null }>('/v1/components')
     },
 
-    prop(slug: string): PropServiceClient {
+    service(slug: string): PropServiceClient {
       return {
         manifest(): Promise<HeadloResult<PropServiceResponse>> {
           return req<PropServiceResponse>(`/v1/prop/service/${encodeURIComponent(slug)}`)
