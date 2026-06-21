@@ -49,6 +49,11 @@ export function createService(config: PropServiceConfig = {}): PropService {
     return distLoaded[key]
   }
 
+  // one cache per component slug — shared across preload() / load() / def()
+  // so PropPreload + useComponent on the same slug don't double-fetch
+  const componentDefCache:  Record<string, Promise<HeadloResult<PropComponentResponse>>> = {}
+  const componentLoadCache: Record<string, Promise<void>>                                = {}
+
   return {
     publishableKey: config.publishableKey,
     url:            config.url,
@@ -64,44 +69,39 @@ export function createService(config: PropServiceConfig = {}): PropService {
     },
 
     component(slug: string) {
-      const encoded    = encodeURIComponent(slug)
-      const bundleUrl  = `${base}/v1/prop/component/${encoded}/bundle`
-      let defCache:  Promise<HeadloResult<PropComponentResponse>> | null = null
-      let loadCache: Promise<void> | null = null
+      const encoded   = encodeURIComponent(slug)
+      const bundleUrl = `${base}/v1/prop/component/${encoded}/bundle`
 
       function fetchDef(): Promise<HeadloResult<PropComponentResponse>> {
-        if (!defCache) {
-          defCache = fetch(`${base}/v1/prop/component/${encoded}`, { headers: headers() })
+        if (!componentDefCache[slug]) {
+          componentDefCache[slug] = fetch(`${base}/v1/prop/component/${encoded}`, { headers: headers() })
             .then(r => r.json() as Promise<HeadloResult<PropComponentResponse>>)
             .catch(e => ({ error: (e as Error)?.message ?? 'Request failed' }) as HeadloResult<PropComponentResponse>)
         }
-        return defCache
+        return componentDefCache[slug]
       }
 
       return {
         def: fetchDef,
         bundleUrl(): string { return bundleUrl },
 
-        // inject <link rel="preload"> for the component bundle + kick off def fetch
-        // so both are in flight before load() is ever called
         preload(): void {
           preloadOnce(bundleUrl)
-          fetchDef() // warm defCache, result ignored here
+          fetchDef()
         },
 
         load(): Promise<void> {
-          if (!loadCache) {
-            // def fetch and React dist download in parallel
+          if (!componentLoadCache[slug]) {
             const defP  = fetchDef()
             const react = loadDist('react', '19')
-            loadCache = Promise.all([defP, react]).then(async ([result]) => {
+            componentLoadCache[slug] = Promise.all([defP, react]).then(async ([result]) => {
               if (result.error) throw new Error(result.error)
               const reactVersion = (result as any).def?.react_version ?? '19'
               if (reactVersion !== '19') await loadDist('react', reactVersion)
               await injectOnce(bundleUrl)
             })
           }
-          return loadCache
+          return componentLoadCache[slug]
         },
       }
     },
